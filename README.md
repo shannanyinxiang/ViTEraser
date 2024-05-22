@@ -143,7 +143,7 @@ bash scripts/viteraser-training-wosegmim/viteraser-tiny-train.sh
 - Run the example scripts in the `scripts/viteraser-training-withsegmim' folder.
 For instance, run the following command to train ViTEraser-Tiny with SegMIM pretraining.
 ```
-bash scripts/viteraser-training-withsegmim/viteraser-tiny-train.sh
+bash scripts/viteraser-training-withsegmim/viteraser-tiny-train-withsegmim.sh
 ```
 
 ## Citation
