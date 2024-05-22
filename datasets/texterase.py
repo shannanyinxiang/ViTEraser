@@ -15,12 +15,12 @@ class TextEraseDataset(Dataset):
     def __getitem__(self, index):
         image = Image.open(self.image_paths[index]).convert('RGB')
         label = Image.open(self.label_paths[index]).convert('RGB')
-        mask_gt = Image.open(self.mask_paths[index]).convert('1')
+        gt_mask = Image.open(self.mask_paths[index]).convert('1')
 
         data = {
             'image': image, 
             'label': label, 
-            'mask_gt': mask_gt, 
+            'gt_mask': gt_mask, 
             'image_path': self.image_paths[index]
         }
 
@@ -53,7 +53,7 @@ def make_erase_transform(image_set, args):
     if image_set == 'train':
         transforms.append(T.RandomCrop(args.crop_min_ratio, args.crop_max_ratio, args.crop_prob))
         transforms.append(T.RandomHorizontalFlip(args.horizontal_flip_prob))
-        transforms.append(T.RandomRotate(args.rotate_max_angle, args.rotate_prob, args.mask_fillcolor))
+        transforms.append(T.RandomRotate(args.rotate_max_angle, args.rotate_prob))
     transforms.append(T.Resize((args.pix2pix_size, args.pix2pix_size)))
     transforms.append(T.ToTensor())
     return Compose(transforms)

@@ -1,4 +1,3 @@
-import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,24 +8,39 @@ from .discriminator import build_discriminator
 from .vgg16 import build_vgg16
 
 class ViTEraser(nn.Module):
-    def __init__(self, encoder, decoder, vgg16, args):
+    def __init__(self, encoder, decoder, vgg16):
         super(ViTEraser, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
         self.pixel_embed = nn.Linear(encoder.num_channels, decoder.embed_dim)
         self.vgg16 = vgg16
 
-    def forward(self, samples):
+    def forward(self, images, labels, gt_masks):
 
-        enc_ms_feats = self.encoder(samples)
+        enc_ms_feats = self.encoder(images)
 
         enc_feat = self.pixel_embed(
                 enc_ms_feats[-1].permute(0, 2, 3, 1)
             ).permute(0, 3, 1, 2)
 
-        outputs, _ = self.decoder(enc_feat, enc_ms_feats)
-        return outputs
+        outputs, pred_mask = self.decoder(enc_feat, enc_ms_feats)
+        
+        if not self.training:
+            return outputs
+        
+        output_comp = gt_masks * images + (1 - gt_masks) * outputs[-1]
+        feat_output_comp = self.vgg16(output_comp)
+        feat_output = self.vgg16(outputs[-1])
+        feat_gt = self.vgg16(labels)
 
+        return {
+            'outputs': outputs,
+            'mask': pred_mask,
+            'feat_output_comp': feat_output_comp,
+            'feat_output': feat_output,
+            'feat_gt': feat_gt
+        }
+        
 
 class MLP(nn.Module):
     """ Very simple multi-layer perceptron (also called FFN)"""
@@ -43,7 +57,7 @@ class MLP(nn.Module):
         return x
 
 
-def load_pretrained_model(model, weight_path, ignored_backbone=False):
+def load_pretrained_model(model, weight_path, ignore_encoder=False):
     weight = torch.load(weight_path, map_location='cpu')['model']
     model_dict = model.state_dict()
 
@@ -55,7 +69,7 @@ def load_pretrained_model(model, weight_path, ignored_backbone=False):
             ignore_keys.append(k)
             continue 
 
-        if ignored_backbone and 'backbone' in k:
+        if ignore_encoder and k.startswith('encoder.'):
             ignore_keys.append(k)
             continue
         
@@ -81,12 +95,10 @@ def build(args):
     model = ViTEraser(
         encoder=encoder, 
         decoder=decoder, 
-        vgg16=vgg16, 
-        args=args,
-    )
+        vgg16=vgg16)
 
     if args.pretrained_model:
-        model = load_pretrained_model(model, args.pretrained_model, args.load_pre_ignore_backbone)
+        model = load_pretrained_model(model, args.pretrained_model, args.load_pretrain_ignore_encoder)
 
     device = torch.device(args.device)
     model = model.to(device)

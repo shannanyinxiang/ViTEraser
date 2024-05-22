@@ -24,4 +24,4 @@ class VGG16(nn.Module):
         return results[1:]
 
 def build_vgg16(args):
-    return VGG16(args.pretrained_feat_extractor)
+    return VGG16(args.pretrained_vgg16)

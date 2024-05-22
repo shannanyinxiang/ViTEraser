@@ -155,7 +155,7 @@ class SwinTransformerV2Decoder(nn.Module):
     """
 
     def __init__(self, 
-                 backbone_chans=768,
+                 encoder_dim=768,
                  embed_dim=768,
                  depths=[2, 6, 2, 2, 2],
                  num_heads=[24, 12, 6, 3, 2],
@@ -172,12 +172,8 @@ class SwinTransformerV2Decoder(nn.Module):
                  frozen_stages=-1,
                  skip_stages=None,
                  intermediate_erase_stages=None,
-                 mask_sigmoid=True,
                  mask_stage=None,
-                 only_mask=False,
-                 pred_mask=True,
-                 post_skip=False,
-                 mask_blk='swinv2',):
+                 pred_mask=True):
         super(SwinTransformerV2Decoder, self).__init__()
         
         self.num_layers = len(depths)
@@ -185,11 +181,7 @@ class SwinTransformerV2Decoder(nn.Module):
         self.patch_norm = patch_norm
         self.mlp_ratio = mlp_ratio
         self.frozen_stages = frozen_stages
-        self.only_mask = only_mask
-        self.pred_mask = pred_mask 
-        self.post_skip = post_skip
-        self.mask_blk = mask_blk
-
+        self.pred_mask = pred_mask
         self.skip_stages = skip_stages
         self.intermediate_erase_stages = intermediate_erase_stages
         self.mask_stage = mask_stage
@@ -219,21 +211,12 @@ class SwinTransformerV2Decoder(nn.Module):
         num_features = [int(embed_dim * 0.5 ** (i + 1)) for i in range(self.num_layers)]
         self.num_features = num_features
         
-        if len(depths) < 5:
-            erase_conv_list = [
-                ConvWithActivation('deconv', 
-                num_features[self.num_layers - 1],
-                num_features[self.num_layers - 1],
-                3, 2, 1) for _ in range(5 - len(depths))]
-            erase_conv_list.append(nn.Conv2d(num_features[self.num_layers - 1], 3, 3, 1, 1))
-            self.erase_conv = nn.Sequential(*erase_conv_list)
-        else:
-            self.erase_conv = nn.Conv2d(num_features[self.num_layers - 1], 3, 3, 1, 1)
+        self.erase_conv = nn.Conv2d(num_features[self.num_layers - 1], 3, 3, 1, 1)
 
         if not self.skip_stages is None:
             self.lateral_connection_list = nn.ModuleList([
                 build_lateral_connection(
-                    int(backbone_chans * 0.5 ** (layer_idx + 1)), 
+                    int(encoder_dim * 0.5 ** (layer_idx + 1)), 
                     num_features[layer_idx] 
                 )
                 for layer_idx in to_layer_idx(self.skip_stages)
@@ -247,34 +230,9 @@ class SwinTransformerV2Decoder(nn.Module):
 
         if not self.mask_stage is None:
             mask_layer_idx = to_layer_idx(self.mask_stage)
-            mask_convs = []
-            if mask_blk == 'deconv':
-                mask_convs.append(
-                ConvWithActivation('deconv', 
-                    num_features[mask_layer_idx],
-                    64, 3, 2, 1
-                ),)
-                mask_convs.append(nn.Conv2d(64, 1, 3, 1, 1))
-            elif mask_blk == 'swin':
-                self.mask_tfm = \
-                    layer = BasicLayer(dim=num_features[mask_layer_idx],
-                               num_heads=2,
-                               depth=2,
-                               window_size=window_size,
-                               mlp_ratio=self.mlp_ratio,
-                               qkv_bias=qkv_bias,
-                               drop=drop_rate, attn_drop=attn_drop_rate,
-                               drop_path=dpr[sum(depths[:mask_layer_idx]):sum(depths[:mask_layer_idx + 1])],
-                               norm_layer=norm_layer,
-                               downsample=PatchSplit,
-                               use_checkpoint=use_checkpoint,
-                               pretrained_window_size=pretrained_window_sizes[mask_layer_idx])
-                self.mask_norm = norm_layer(num_features[mask_layer_idx]//2)
-                mask_convs.append(nn.Conv2d(num_features[mask_layer_idx]//2, 1, 3, 1, 1))
-
-            if mask_sigmoid:
-                mask_convs.append(nn.Sigmoid())
-            self.mask_conv = nn.Sequential(*mask_convs)
+            self.mask_conv = nn.Sequential(
+                ConvWithActivation('deconv', num_features[mask_layer_idx], 64, 3, 2, 1),
+                nn.Conv2d(64, 1, 3, 1, 1))
 
         # add a norm layer for each output
         self.output_stages = self.intermediate_erase_stages + [f'stage{self.num_layers + 1}']
@@ -338,11 +296,10 @@ class SwinTransformerV2Decoder(nn.Module):
             
             name = f'stage{i+2}'
 
-            if not self.post_skip:
-                if name in self.skip_stages:
-                    skip_feature = self.lateral_connection_list[self.skip_stages.index(name)](skip_features[-i-2])
-                    skip_feature = skip_feature.flatten(2).transpose(1, 2)
-                    x = x + skip_feature
+            if name in self.skip_stages:
+                skip_feature = self.lateral_connection_list[self.skip_stages.index(name)](skip_features[-i-2])
+                skip_feature = skip_feature.flatten(2).transpose(1, 2)
+                x = x + skip_feature
 
             if name in self.output_stages:
                 norm_layer = getattr(self, f'norm{i}')
@@ -355,19 +312,7 @@ class SwinTransformerV2Decoder(nn.Module):
                 outputs.append(inter_erase_output)
 
             if name == self.mask_stage:
-                if self.mask_blk == 'swin':
-                    _, _, _, mask_out, Mh, Mw = self.mask_tfm(x, Wh, Ww)
-                    mask_out = self.mask_norm(mask_out)
-                    mask_out = mask_out.view(-1, Mh, Mw, self.num_features[i]//2).permute(0, 3, 1, 2).contiguous()
-                else:
-                    mask_out = x_out
-                mask = self.mask_conv(mask_out)
-            
-            if self.post_skip:
-                if name in self.skip_stages:
-                    skip_feature = self.lateral_connection_list[self.skip_stages.index(name)](skip_features[-i-2])
-                    skip_feature = skip_feature.flatten(2).transpose(1, 2)
-                    x = x + skip_feature
+                mask = self.mask_conv(x_out)
 
         erase_output = self.erase_conv(x_out)
         outputs.append(erase_output)
@@ -396,16 +341,12 @@ def build_swin_v2_decoder(args):
         frozen_stages=-1,
         skip_stages=['stage2', 'stage3', 'stage4'],
         intermediate_erase_stages=['stage4', 'stage5'] if args.intermediate_erase else [],
-        mask_sigmoid=args.mask_sigmoid,
         mask_stage='stage5' if args.pred_mask else None,
-        only_mask=(args.dataset_file == 'text_spotting'),
         pred_mask=args.pred_mask,
-        post_skip=args.post_skip,
-        mask_blk=args.mask_blk,
         embed_dim=args.swin_enc_embed_dim * 8,
         depths=args.swin_dec_depths,
         num_heads=args.swin_dec_num_heads,
-        backbone_chans=args.swin_enc_embed_dim * 8,
+        encoder_dim=args.swin_enc_embed_dim * 8,
     )
 
     if args.pretrained_decoder:

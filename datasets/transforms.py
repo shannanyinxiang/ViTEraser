@@ -3,17 +3,16 @@ import random
 import torchvision.transforms as transforms
 
 class RandomRotate(object):
-    def __init__(self, angle, prob, mask_fillcolor):
+    def __init__(self, angle, prob):
         self.angle = angle 
         self.prob = prob
-        self.mask_fillcolor = mask_fillcolor
 
     def __call__(self, data):
         if random.random() < self.prob:
             angle = random.uniform(-self.angle, self.angle)
             for k in ['image', 'label']:
                 data[k] = data[k].rotate(angle, expand=True)
-            data['mask_gt'] = data['mask_gt'].rotate(angle, expand=True, fillcolor=1)
+            data['gt_mask'] = data['gt_mask'].rotate(angle, expand=True, fillcolor=1)
         return data 
 
 class Resize(object):
@@ -21,7 +20,7 @@ class Resize(object):
         self.size = size 
 
     def __call__(self, data):
-        for k in ['image', 'label', 'mask_gt']:
+        for k in ['image', 'label', 'gt_mask']:
             data[k] = data[k].resize(self.size)
         return data
 
@@ -31,7 +30,7 @@ class RandomHorizontalFlip(object):
     
     def __call__(self, data):
         if random.random() < self.prob:
-            for k in ['image', 'label', 'mask_gt']:
+            for k in ['image', 'label', 'gt_mask']:
                 data[k] = data[k].transpose(PIL.Image.FLIP_LEFT_RIGHT)
         return data
 
@@ -53,7 +52,7 @@ class RandomCrop(object):
             xmax = xmin + crop_W 
             ymax = ymin + crop_H
 
-            for k in ['image', 'label', 'mask_gt']:
+            for k in ['image', 'label', 'gt_mask']:
                 data[k] = data[k].crop((xmin, ymin, xmax, ymax))
         
         return data
@@ -63,6 +62,6 @@ class ToTensor(object):
         self.to_tensor = transforms.ToTensor()
     
     def __call__(self, data):
-        for k in ['image', 'label', 'mask_gt']:
+        for k in ['image', 'label', 'gt_mask']:
             data[k] = self.to_tensor(data[k])
         return data 

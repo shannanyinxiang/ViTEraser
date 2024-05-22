@@ -6,7 +6,7 @@ import torch.nn as nn
 from models.block import ConvWithActivation
 
 class Discriminator(nn.Module):
-    def __init__(self, sigmoid):
+    def __init__(self):
         super(Discriminator, self).__init__()
         cnum = 32
         self.global_dis = nn.Sequential(
@@ -20,11 +20,8 @@ class Discriminator(nn.Module):
         self.local_dis = copy.deepcopy(self.global_dis)
 
         fusion_layers = [nn.Conv2d(16*cnum, 1, kernel_size=4), ]
-        if sigmoid:
-            fusion_layers.append(nn.Sigmoid())
+        fusion_layers.append(nn.Sigmoid())
         self.fusion = nn.Sequential(*fusion_layers)
-
-        self.sigmoid = sigmoid
     
     def forward(self, input, mask):
         global_feat = self.global_dis(input)
@@ -32,16 +29,13 @@ class Discriminator(nn.Module):
 
         concat_feat = torch.cat([global_feat, local_feat], 1)
         fused_prob = self.fusion(concat_feat)
-        if self.sigmoid:
-            fused_prob = fused_prob * 2 - 1
+        fused_prob = fused_prob * 2 - 1
 
         return fused_prob
 
-def get_pad(in_,  ksize, stride, atrous=1):
+def get_pad(in_, ksize, stride, atrous=1):
     out_ = np.ceil(float(in_)/stride)
     return int(((out_ - 1) * stride + atrous*(ksize-1) + 1 - in_)/2)
 
 def build_discriminator(args):
-    return Discriminator(
-        sigmoid=args.dis_sigmoid
-    )
+    return Discriminator()

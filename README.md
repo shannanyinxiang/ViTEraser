@@ -9,7 +9,7 @@ Below are the frameworks of ViTEraser and SegMIM.
 
 ## Todo List
 - [x] Inference code and model weights 
-- [ ] ViTEraser training code 
+- [x] ViTEraser training code 
 - [ ] SegMIM pre-training code
 
 ## Environment
@@ -27,10 +27,15 @@ pip install -r requirements.txt
 
 - SCUT-EnsText [[paper]](https://ieeexplore.ieee.org/document/9180003): 
 
-  1. Download the test set of SCUT-EnsText at [link](https://github.com/HCIILAB/SCUT-EnsText).
+  1. Download the training and testing sets of SCUT-EnsText at [link](https://github.com/HCIILAB/SCUT-EnsText).
   2. Rename `all_images` and `all_labels` folders to `image` and `label`, respectively.
   3. Generate text masks: 
   ```
+    # Generating masks for the training set of SCUT-EnsText
+    python tools/generate_mask.py \
+      --data_root data/TextErase/SCUT-EnsText/train    
+
+    # Generating masks for the testing set of SCUT-EnsText
     # Masks are not used for inference. Just keep the same data structure as the training stage.
     python tools/generate_mask.py \
       --data_root data/TextErase/SCUT-EnsText/test
@@ -42,6 +47,10 @@ Please prepare the above datasets into the `data` folder following the file stru
 data
 └─TextErase
    └─SCUT-EnsText
+      ├─train
+      │  ├─image
+      │  ├─label
+      │  └─mask
       └─test
          ├─image
          ├─label
@@ -72,7 +81,7 @@ python -m torch.distributed.launch \
         --data_root data/TextErase/ \
         --val_dataset scutens_test \
         --batch_size 1 \
-        --encoder swin_v2 \
+        --encoder swinv2 \
         --decoder swinv2 \
         --pred_mask false \
         --intermediate_erase false \
@@ -111,6 +120,30 @@ python -m pytorch_fid \
     data/TextErase/SCUT-EnsText/test/label/ \
     path/to/model/output/ \
     --device cuda:0
+```
+
+## ViTEraser Training
+
+### 1. Training without SegMIM pretraining
+
+- Download the ImageNet-pretrained weights of Swin Transformer V2 (Tiny: [download link](https://pan.baidu.com/s/19v-qKJO4c0iK52y7Lx1Qgg?pwd=j8yj), Small: [download link](https://pan.baidu.com/s/1kLAA27KqPlTEZnLkxTjC2w?pwd=8rm6), Base: [download link](https://pan.baidu.com/s/1_UO_MGN-O4pXsekBP_YPxg?pwd=75bf), originally released at [repo](https://github.com/microsoft/Swin-Transformer)).
+- Download the ImageNet-pretrained weights of VGG-16 ([download link](https://pan.baidu.com/s/13dS0Q55ydoF6zdGKxS1lkg?pwd=5scx), originally released by PyTorch).
+- Put the pretrained weights into the `pretrained` folder.
+- Run the example scripts in the `scripts/viteraser-training-wosegmim' folder.
+For instance, run the following command to train ViTEraser-Tiny without SegMIM pretraining.
+```
+bash scripts/viteraser-training-wosegmim/viteraser-tiny-train.sh
+```
+
+### 2. Training with SegMIM pretraining
+
+- Download the SegMIM pretraining weights for ViTEraser-Tiny ([download link](https://pan.baidu.com/s/1lqhWgpmrnxHbk1USRpSGtw?pwd=xr6a)), ViTEraser-Small ([download link](https://pan.baidu.com/s/16TcTOdwPAZnmUgk_SUR7Ag?pwd=i6zr)), or ViTEraser-Base ([download link](https://pan.baidu.com/s/1HGlb1xAfKykS8wp3FPwSIQ?pwd=frdq)).
+- Download the ImageNet-pretrained weights of VGG-16 ([download link](https://pan.baidu.com/s/13dS0Q55ydoF6zdGKxS1lkg?pwd=5scx), originally released by PyTorch).
+- Put the pretrained weights into the `pretrained` folder.
+- Run the example scripts in the `scripts/viteraser-training-withsegmim' folder.
+For instance, run the following command to train ViTEraser-Tiny with SegMIM pretraining.
+```
+bash scripts/viteraser-training-withsegmim/viteraser-tiny-train.sh
 ```
 
 ## Citation
