@@ -129,7 +129,7 @@ python -m pytorch_fid \
 - Download the ImageNet-pretrained weights of Swin Transformer V2 (Tiny: [download link](https://pan.baidu.com/s/19v-qKJO4c0iK52y7Lx1Qgg?pwd=j8yj), Small: [download link](https://pan.baidu.com/s/1kLAA27KqPlTEZnLkxTjC2w?pwd=8rm6), Base: [download link](https://pan.baidu.com/s/1_UO_MGN-O4pXsekBP_YPxg?pwd=75bf), originally released at [repo](https://github.com/microsoft/Swin-Transformer)).
 - Download the ImageNet-pretrained weights of VGG-16 ([download link](https://pan.baidu.com/s/13dS0Q55ydoF6zdGKxS1lkg?pwd=5scx), originally released by PyTorch).
 - Put the pretrained weights into the `pretrained` folder.
-- Run the example scripts in the `scripts/viteraser-training-wosegmim' folder.
+- Run the example scripts in the `scripts/viteraser-training-wosegmim` folder.
 For instance, run the following command to train ViTEraser-Tiny without SegMIM pretraining.
 ```
 bash scripts/viteraser-training-wosegmim/viteraser-tiny-train.sh
@@ -140,7 +140,7 @@ bash scripts/viteraser-training-wosegmim/viteraser-tiny-train.sh
 - Download the SegMIM pretraining weights for ViTEraser-Tiny ([download link](https://pan.baidu.com/s/1lqhWgpmrnxHbk1USRpSGtw?pwd=xr6a)), ViTEraser-Small ([download link](https://pan.baidu.com/s/16TcTOdwPAZnmUgk_SUR7Ag?pwd=i6zr)), or ViTEraser-Base ([download link](https://pan.baidu.com/s/1HGlb1xAfKykS8wp3FPwSIQ?pwd=frdq)).
 - Download the ImageNet-pretrained weights of VGG-16 ([download link](https://pan.baidu.com/s/13dS0Q55ydoF6zdGKxS1lkg?pwd=5scx), originally released by PyTorch).
 - Put the pretrained weights into the `pretrained` folder.
-- Run the example scripts in the `scripts/viteraser-training-withsegmim' folder.
+- Run the example scripts in the `scripts/viteraser-training-withsegmim` folder.
 For instance, run the following command to train ViTEraser-Tiny with SegMIM pretraining.
 ```
 bash scripts/viteraser-training-withsegmim/viteraser-tiny-train-withsegmim.sh
