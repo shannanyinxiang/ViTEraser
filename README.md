@@ -10,7 +10,7 @@ Below are the frameworks of ViTEraser and SegMIM.
 ## Todo List
 - [x] Inference code and model weights 
 - [x] ViTEraser training code 
-- [ ] SegMIM pre-training code
+- [x] SegMIM pre-training code
 
 ## Environment
 We recommend using [Anaconda](https://www.anaconda.com/) to manage environments. Run the following commands to install dependencies.
@@ -23,8 +23,9 @@ cd ViTEraser
 pip install -r requirements.txt
 ```
 
-## Dataset 
+## Datasets 
 
+### 1. Text Removal Dataset
 - SCUT-EnsText [[paper]](https://ieeexplore.ieee.org/document/9180003): 
 
   1. Download the training and testing sets of SCUT-EnsText at [link](https://github.com/HCIILAB/SCUT-EnsText).
@@ -41,20 +42,38 @@ pip install -r requirements.txt
       --data_root data/TextErase/SCUT-EnsText/test
   ```
 
+### 2. SegMIM Pretraining Datasets 
+(optional, only required by SegMIM pretraining)
+- ICDAR2013 [[paper](https://ieeexplore.ieee.org/document/6628859)][[download link](https://pan.baidu.com/s/1QcR1yNNIqrWgvigk3UwEJg?pwd=52td)]
+- ICDAR2015 [[paper](https://ieeexplore.ieee.org/document/7333942)][[download link](https://pan.baidu.com/s/11mxtWL-bnO0qwEi5aE0OyA?pwd=rqrg)]
+- MLT2017 [[paper](https://ieeexplore.ieee.org/document/8270168)][[download link](https://pan.baidu.com/s/1DRazAnO-bRR46ybWzDLKOA?pwd=42hv)]
+- ArT [[paper](https://arxiv.org/abs/1909.07741)][[download link](https://pan.baidu.com/s/13cn5zw4vI57ET83ouHPh4Q?pwd=rzwr)]
+- LSVT [[paper](https://arxiv.org/abs/1909.07741)][[download link](https://pan.baidu.com/s/1NO1q7KVgFn9CrKsUH5gzzA?pwd=6jvr)]
+- ReCTS [[paper](https://arxiv.org/abs/1909.07741)][[download link](https://pan.baidu.com/s/11c_VyEXD1YILA6FxODLElQ?pwd=ssmb)]
+- TextOCR [[paper](https://arxiv.org/abs/1909.07741)][[download link](https://pan.baidu.com/s/1-IX6H8wppsMDhI74JhvU5Q?pwd=q5f2)]
+
 Please prepare the above datasets into the `data` folder following the file structure below.
 
 ```
 data
-└─TextErase
-   └─SCUT-EnsText
-      ├─train
-      │  ├─image
-      │  ├─label
-      │  └─mask
-      └─test
-         ├─image
-         ├─label
-         └─mask
+├─TextErase
+│  └─SCUT-EnsText
+│     ├─train
+│     │  ├─image
+│     │  ├─label
+│     │  └─mask
+│     └─test
+│        ├─image
+│        ├─label
+│        └─mask
+└─SegMIMDatasets
+   ├─ArT
+   ├─ICDAR2013
+   ├─ICDAR2015
+   ├─LSVT
+   ├─MLT2017
+   ├─ReCTS
+   └─TextOCR
 ```
 
 ## Models
@@ -144,6 +163,18 @@ bash scripts/viteraser-training-wosegmim/viteraser-tiny-train.sh
 For instance, run the following command to train ViTEraser-Tiny with SegMIM pretraining.
 ```
 bash scripts/viteraser-training-withsegmim/viteraser-tiny-train-withsegmim.sh
+```
+
+## SegMIM Pretraining
+- Download the ImageNet-pretrained weights of Swin Transformer V2 (Tiny: [download link](https://pan.baidu.com/s/19v-qKJO4c0iK52y7Lx1Qgg?pwd=j8yj), Small: [download link](https://pan.baidu.com/s/1kLAA27KqPlTEZnLkxTjC2w?pwd=8rm6), Base: [download link](https://pan.baidu.com/s/1_UO_MGN-O4pXsekBP_YPxg?pwd=75bf), originally released at [repo](https://github.com/microsoft/Swin-Transformer)) into the `pretrained` folder.
+- Run the example scripts in the `scripts/segmim` folder.
+For instance, run the following command to perform SegMIM pretraining of ViTEraser-Tiny.
+```
+# end-to-end encoder-decoder pretraining
+bash scripts/segmim/viteraser-tiny-segmim.sh
+
+# standalone encoder finetuning
+bash scripts/segmim/viteraser-tiny-encoder-finetune.sh
 ```
 
 ## Citation

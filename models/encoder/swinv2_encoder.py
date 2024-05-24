@@ -11,7 +11,7 @@ from .swin_transformer_v2 import build_swinv2_encoder
 
 class SwinV2Encoder(nn.Module):
     def __init__(self, train_backbone, weight_path, embed_dim, depths, num_heads,
-        drop_path_rate, pretrained_ws, window_size, use_checkpoint):
+        drop_path_rate, pretrained_ws, window_size, use_checkpoint, encoder_type):
         super(SwinV2Encoder, self).__init__()
         self.backbone = build_swinv2_encoder(
                             embed_dim=embed_dim, 
@@ -20,7 +20,8 @@ class SwinV2Encoder(nn.Module):
                             drop_path_rate=drop_path_rate, 
                             pretrained_ws=pretrained_ws, 
                             window_size=window_size, 
-                            use_checkpoint=use_checkpoint)
+                            use_checkpoint=use_checkpoint,
+                            encoder_type=encoder_type)
         
         if not train_backbone:
             for name, parameter in self.backbone.named_parameters():
@@ -29,9 +30,13 @@ class SwinV2Encoder(nn.Module):
         if is_main_process() and weight_path != '':
             self.load_pretrained_weights(weight_path)
         self.num_channels = embed_dim * 8
+        self.encoder_type = encoder_type
     
-    def forward(self, input):
-        feats = self.backbone(input)
+    def forward(self, input, mask=None):
+        if self.encoder_type == 'SwinTransformerV2':
+            feats = self.backbone(input)
+        elif self.encoder_type == 'SwinTransformerV2ForSimMIM':
+            feats = self.backbone(input, mask)
         return feats
 
     def load_pretrained_weights(self, pth_path):

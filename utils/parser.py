@@ -13,13 +13,16 @@ def get_args_parser():
     parser.add_argument('--warmup_min_lr', type=float, default=0.0001)
     parser.add_argument('--min_lr', type=float, default=0.00001)
     parser.add_argument('--warmup_epochs', type=int, default=10)
-    parser.add_argument('--finetune', action='store_true')
+    parser.add_argument('--milestones', nargs='+', type=int, default=[80,])
+    parser.add_argument('--segmim_finetune', type=str2bool, default=False)
     parser.add_argument('--save_interval', type=int, default=5)
     parser.add_argument('--eval', action='store_true')
     parser.add_argument('--output_dir', default='', help='path where to save, empty for no saving')
     parser.add_argument('--device', default='cuda', help='device to use for training / testing')
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--resume', default='', help='resume from checkpoint')
+    parser.add_argument('--clip_max_norm', type=float, default=0)
+    parser.add_argument('--layer_decay', type=float, default=0.75)
 
     # Model Parameters
     parser.add_argument('--pretrained_model', type=str, default='')
@@ -45,6 +48,7 @@ def get_args_parser():
     parser.add_argument('--swin_use_checkpoint', action='store_true')
     parser.add_argument('--swin_enc_use_checkpoint', action='store_true')
     parser.add_argument('--swin_dec_use_checkpoint', action='store_true')
+    parser.add_argument('--segmim_ft_init_weight_path', type=str, default='')
 
     # Data parameters
     parser.add_argument('--crop_min_ratio', type=float, default=0.5)
@@ -59,6 +63,8 @@ def get_args_parser():
     parser.add_argument('--val_dataset', type=str, nargs='+')
     parser.add_argument('--data_root', type=str, default='data')
     parser.add_argument('--num_workers', default=2, type=int)
+    parser.add_argument('--random_mask_patch_size', type=int, default=32)
+    parser.add_argument('--random_mask_ratio', type=float, default=0.6)
 
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,

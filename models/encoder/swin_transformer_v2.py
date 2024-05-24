@@ -574,8 +574,47 @@ class SwinTransformerV2(nn.Module):
         return outs
 
 
-def build_swinv2_encoder(depths, embed_dim, num_heads, drop_path_rate, pretrained_ws, window_size, use_checkpoint):
-    return SwinTransformerV2(
+class SwinTransformerV2ForSimMIM(SwinTransformerV2):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.mask_token = nn.Parameter(torch.zeros(1, self.embed_dim, 1, 1))
+        trunc_normal_(self.mask_token, mean=0., std=.02)
+    
+    def forward(self, x, mask):
+        """Forward function."""
+        x = self.patch_embed(x)
+
+        B, _, Wh, Ww = x.shape
+        mask_tokens = self.mask_token.expand(B, -1, Wh, Ww)
+        mask = mask.unsqueeze(1)
+        x = x * (1. - mask) + mask_tokens * mask
+
+        x = x.flatten(2).transpose(1, 2)
+        x = self.pos_drop(x)
+
+        outs = []
+        for i in range(self.num_layers):
+            layer = self.layers[i]
+            x_out, H, W, x, Wh, Ww = layer(x, Wh, Ww)
+            name = f'stage{i+1}'
+            if name in self._out_features:
+                norm_layer = getattr(self, f'norm{i}')
+                x_out = norm_layer(x_out)
+                out = x_out.view(-1, H, W, self.num_features[i]).permute(0, 3, 1, 2).contiguous()
+                outs.append(out)
+
+        return outs
+
+
+def build_swinv2_encoder(depths, embed_dim, num_heads, drop_path_rate, pretrained_ws, window_size, use_checkpoint, encoder_type):
+    if encoder_type == 'SwinTransformerV2':
+        encoder_cls = SwinTransformerV2
+    elif encoder_type == 'SwinTransformerV2ForSimMIM':
+        encoder_cls = SwinTransformerV2ForSimMIM
+    else:
+        raise ValueError(f'encoder {encoder_type} not supported')
+
+    return encoder_cls(
         patch_size=4,
         in_chans=3,
         embed_dim=embed_dim,

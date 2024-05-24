@@ -1,10 +1,13 @@
 import torch
 from .collate_fn import CollateFN
+from .segmim import build as build_segmim
 from .texterase import build as build_texterase
 
 def build_dataset(image_set, args):
     if args.dataset_file == 'texterase':
         return build_texterase(image_set, args)
+    elif args.dataset_file == 'segmim':
+        return build_segmim(image_set, args)
     raise ValueError(f'dataset {args.dataset_file} not supported')
 
 def build_dataloader(dataset, image_set, args):

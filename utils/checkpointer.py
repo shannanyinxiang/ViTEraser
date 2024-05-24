@@ -21,11 +21,14 @@ class Checkpointer(object):
             discriminator.load_state_dict(checkpoint['discriminator'])
         
         if not optimizer is None:
-            if 'G' in optimizer and 'optimizer_G' in checkpoint:
-                optimizer['G'].load_state_dict(checkpoint['optimizer_G'])
-            
-            if 'D' in optimizer and 'optimizer_D' in checkpoint:
-                optimizer['D'].load_state_dict(checkpoint['optimizer_D'])
+            if isinstance(optimizer, dict):
+                if 'G' in optimizer and 'optimizer_G' in checkpoint:
+                    optimizer['G'].load_state_dict(checkpoint['optimizer_G'])
+                if 'D' in optimizer and 'optimizer_D' in checkpoint:
+                    optimizer['D'].load_state_dict(checkpoint['optimizer_D'])
+            else:
+                if 'optimizer' in checkpoint:
+                    optimizer.load_state_dict(checkpoint['optimizer'])
 
         if 'epoch' in checkpoint:
             start_epoch = checkpoint['epoch'] + 1
@@ -45,12 +48,17 @@ class Checkpointer(object):
         
         checkpoint = {
             'model': model.state_dict(),
-            'optimizer_G': optimizer['G'].state_dict(),
             'epoch': epoch,
             'args': args
         }
-        if 'D' in optimizer:
-            checkpoint['optimizer_D'] = optimizer['D'].state_dict()
+
+        if isinstance(optimizer, dict):
+            checkpoint['optimizer_G'] = optimizer['G'].state_dict()     
+            if 'D' in optimizer:
+                checkpoint['optimizer_D'] = optimizer['D'].state_dict()
+        else:
+            checkpoint['optimizer'] = optimizer.state_dict()
+
         if not discriminator is None:
             checkpoint['discriminator'] = discriminator.state_dict()
         torch.save(checkpoint, checkpoint_path)
