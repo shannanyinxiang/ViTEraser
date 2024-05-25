@@ -15,7 +15,7 @@ class ViTEraser(nn.Module):
         self.pixel_embed = nn.Linear(encoder.num_channels, decoder.embed_dim)
         self.vgg16 = vgg16
 
-    def forward(self, images, labels, gt_masks):
+    def forward(self, images, labels=None, gt_masks=None):
 
         enc_ms_feats = self.encoder(images)
 
